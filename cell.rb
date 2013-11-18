@@ -1,100 +1,105 @@
 ## Picked up a few good tips from https://github.com/spaghetticode/game-of-life-ruby
 ##
 class Grid
+
+  # Neighbors are each adjacent cell (including diagonals).
+  #   Note: I'm using row->col ordering in the code, but presented
+  #   the locations of neighbors here in x->y order. Doesn't matter
+  #   because neighbors are summed in no order, but fyi.
+  ADJACENT = [
+    [-1,  1],[ 0,  1],[ 1,  1],
+    [-1,  0],         [ 1,  0],
+    [-1, -1],[ 0, -1],[ 1, -1], 
+  ]
+
   attr_accessor :cells, :neighbor_map
+
+  def initialize(total_rows, total_cols)
+    @total_cols = total_cols
+    @total_rows = total_rows
+
+    @cells = Array.new(@total_rows) { Array.new(@total_cols) { block_given? ? yield : 0 } }
+    @neighbor_map = Array.new(@total_rows) { Array.new(@total_cols) {0} }
+  end
 
   def copy_cells
     return Marshal.load(Marshal.dump(@cells))
   end
 
-  def initialize(total_rows, total_cols)
-    @total_cols = total_cols
-    @total_rows = total_rows
-    @cells = Array.new(@total_rows) { Array.new(@total_cols) {0} }
-    @neighbor_map = Array.new(@total_rows) { Array.new(@total_cols) {0} }
-  end
-  
   def seed(living_cells)
-    living_cells.each { |pos| @cells[ pos[0] ][ pos[1] ] = 1 }
-  end
-  
-  def random_seed(pct = 0.5)
-    (0...@total_rows).each do |r|
-      (0...@total_cols).each do |c| 
-        @cells[r][c] = (rand > pct) ? 1 : 0
-      end
-    end
+    # Mark as living all cells in the passed in array
+    living_cells.each { |p| @cells[p[0]][p[1]] = 1 }
   end
 
   def to_s
-    @cells.inject("") do |s, row|
-      row.each do |cell|
-        s << cell.to_s
-      end
-      s << "\n"
-    end
+    Grid.print_array(@cells)
   end
 
   def print_neighbors
-    @neighbor_map.inject("") do |s, row|
-      row.each do |cell|
-        s << cell.to_s
-      end
-      s << "\n"
+    Grid.print_array(@neighbor_map)
+  end
+
+  def sum_of_living_neighbors(row, col)
+    ADJACENT.inject(0) do |neighbors, p|
+      r = (p[0] + row) % @total_rows
+      c = (p[1] + col) % @total_cols
+
+      neighbors + @cells[r][c]
     end
   end
 
-  def neighbor_count(row, col)
-    neighbors = 0
+  def did_change
+    @has_changed = true
+  end
 
-    # Neighbors are each adjacent cell (including diagonals)
-    [[ 1,  1], [ 0,  1], [-1,  1], [ 1,  0],
-     [ 1, -1], [ 0, -1], [-1, -1], [-1,  0]].each do |p|
+  def reset_change
+    @has_changed = false
+  end
 
-      nrow = p[0] + row
-      ncol = p[1] + col
-
-      nrow = 0 unless nrow < @total_rows
-      ncol = 0 unless ncol < @total_cols
-
-      val = @cells[nrow][ncol]
-
-      neighbors += val
-    end
-
-    return neighbors
+  def changed?
+    @has_changed
   end
 
   def run
-    @has_changed = false
-    old_cells = copy_cells
+    reset_change
 
-    (0...@total_rows).each do |irows|
-      (0...@total_cols).each do |icols|
-        neighbors = neighbor_count(irows, icols)
-        old_val = @cells[irows][icols]
+    # Need to create a copy of cells (alternatively, new blank array)
+    # in order to sum a snapshot without overwriting. 
+    new_cells = copy_cells
 
-        if old_val == 0 && neighbors == 3
+    @total_rows.times do |i|
+      @total_cols.times do |j|
+        s = sum_of_living_neighbors(i, j)
+        old_val = @cells[i][j]
+
+        if old_val == 0 && s == 3
           new_val = 1 
-          @has_changed = true
-        elsif old_val == 1 && (neighbors < 2 || neighbors > 3)
+          did_change
+
+        elsif old_val == 1 && (s < 2 || s > 3)
           new_val = 0
-          @has_changed = true
+          did_change
+
         else
           new_val = old_val
         end
 
-        old_cells[irows][icols] = new_val
+        new_cells[i][j] = new_val
 
-        @neighbor_map[irows][icols] = neighbors
+        @neighbor_map[i][j] = s
 
       end
     end
 
-    @cells = old_cells
-    return @has_changed
+    @cells = new_cells
+    
+    changed?
   end
 
-  attr_accessor :has_changed
+  def self.print_array(array)
+    array.inject("") do |s, row|
+      s << "#{row.join}\n"
+    end
+  end
 end
 

@@ -1,7 +1,7 @@
 require './cell.rb'
 
-grid = Grid.new(20, 40)
-grid.random_seed
+grid = Grid.new(20, 40) { rand > 0.5 ? 1 : 0 }
+
 # grid.seed([[2,1], [2,2], [2,3], [1,3], [0,2]])
 
 100.times do |t|
