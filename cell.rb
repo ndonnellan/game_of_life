@@ -1,6 +1,8 @@
 ## Picked up a few good tips from https://github.com/spaghetticode/game-of-life-ruby
 ##
 class Grid
+  # Cellular Automata: Grid of 'cells' that live or die based on
+  # the state of their neighbors
 
   # Neighbors are each adjacent cell (including diagonals).
   #   Note: I'm using row->col ordering in the code, but presented
@@ -20,44 +22,6 @@ class Grid
 
     @cells = Array.new(@total_rows) { Array.new(@total_cols) { block_given? ? yield : 0 } }
     @neighbor_map = Array.new(@total_rows) { Array.new(@total_cols) {0} }
-  end
-
-  def copy_cells
-    return Marshal.load(Marshal.dump(@cells))
-  end
-
-  def seed(living_cells)
-    # Mark as living all cells in the passed in array
-    living_cells.each { |p| @cells[p[0]][p[1]] = 1 }
-  end
-
-  def to_s
-    Grid.print_array(@cells)
-  end
-
-  def print_neighbors
-    Grid.print_array(@neighbor_map)
-  end
-
-  def sum_of_living_neighbors(row, col)
-    ADJACENT.inject(0) do |neighbors, p|
-      r = (p[0] + row) % @total_rows
-      c = (p[1] + col) % @total_cols
-
-      neighbors + @cells[r][c]
-    end
-  end
-
-  def did_change
-    @has_changed = true
-  end
-
-  def reset_change
-    @has_changed = false
-  end
-
-  def changed?
-    @has_changed
   end
 
   def run
@@ -94,6 +58,44 @@ class Grid
     @cells = new_cells
     
     changed?
+  end
+
+  def to_s
+    Grid.print_array(@cells)
+  end
+  
+  def print_neighbors
+    Grid.print_array(@neighbor_map)
+  end
+
+  def copy_cells
+    return Marshal.load(Marshal.dump(@cells))
+  end
+
+  def seed(living_cells)
+    # Mark as living all cells in the passed in array
+    living_cells.each { |p| @cells[p[0]][p[1]] = 1 }
+  end
+
+  def sum_of_living_neighbors(row, col)
+    ADJACENT.inject(0) do |neighbors, p|
+      r = (p[0] + row) % @total_rows
+      c = (p[1] + col) % @total_cols
+
+      neighbors + @cells[r][c]
+    end
+  end
+
+  def did_change
+    @has_changed = true
+  end
+
+  def reset_change
+    @has_changed = false
+  end
+
+  def changed?
+    @has_changed
   end
 
   def self.print_array(array)
